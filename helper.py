@@ -4,6 +4,9 @@
 import numpy as np
 
 import matplotlib
+
+#matplotlib.use('Agg') #hopw this is gonna work
+
 import matplotlib.pyplot as plt
 
 from skimage.transform import resize
@@ -20,10 +23,8 @@ def setup_saver(W, b):
 
 
 #Helper functions
-def save_figs(rewardList, stepsList, parameter):
+def save_figs(rewardList, stepsList, parameter, i):
     """ Creates matplotlib figures out of the accumulated lists """
-    if not parameter['X11']:
-        matplotlib.use('Agg') #hopw this is gonna work
 
     plt.interactive(False)
     plt.plot(rewardList)

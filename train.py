@@ -62,7 +62,7 @@ def train(env, parameter, saver, forward_dict, loss_dict):
 
             #print (i, parameter['NUM_EPISODES'])
             if i % parameter['SAVE_EVERY'] == 0:
-                save_figs(reward_list, steps_list, parameter)
+                save_figs(reward_list, steps_list, parameter, i)
                 saver.save(sess, 'modelSpaceInvader.ckpt', global_step=i)
                 
             print "Progress: {0:.3f}%%".format(percentage * 100)
@@ -71,7 +71,7 @@ def train(env, parameter, saver, forward_dict, loss_dict):
             print "Percent of successful episodes: " + str(sum(reward_list)/parameter['NUM_EPISODES']) + "%"
             print
 
-        save_figs(reward_list, steps_list, parameter)
+        save_figs(reward_list, steps_list, parameter, parameter['NUM_EPISODES'] + 1)
         saver.save(sess, 'modelSpaceInvader.ckpt', global_step=parameter['NUM_EPISODES'] + 1)
 
     return reward_list, steps_list
