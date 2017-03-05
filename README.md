@@ -10,8 +10,6 @@ python Spaceinvaders.py
 ```
 for simple use. You can change the parameters within the `setup.py`-parameters dictionary.
 
-For performance / batch-jobs use the single-file script within 'short' (((STILL WORKING ON DEBUGGING THIS ISSUE)))
-
 ## Code Files
 #### SpaceInvaders.py
 Includes the 'main thread' of the program. Very simple abstraction level.
