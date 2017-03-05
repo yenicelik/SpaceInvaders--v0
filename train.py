@@ -90,6 +90,7 @@ def run_episode(env, sess, cur_episode, parameter, forward_dict, loss_dict):
     steps = 1
 
     while steps < parameter['NUM_STEPS']:
+        steps += 1
         new_observation, reward, done = step_environment(
                             env=env,
                             observation=observation,

@@ -1,4 +1,24 @@
+import gym
+import random
+import sys
 
+import datetime
+import time
+
+import matplotlib
+import matplotlib.pyplot as plt
+
+from skimage.transform import resize
+from skimage.color import rgb2gray
+
+import matplotlib
+import matplotlib.pyplot as plt
+
+from skimage.transform import resize
+from skimage.color import rgb2gray
+
+import tensorflow as tf
+import numpy as np
 
 parameter = {
         "GAMMA": .99,
@@ -9,13 +29,14 @@ parameter = {
         "OLD_TF": False,
         "SAVE_FIGS": False,
         "X11": True,
-        "record": False
+        "record": False,
+        "verbose": True
     }
 
 
 env = gym.make('SpaceInvaders-v0')
-    if parameter["record"]:
-        env = wrappers.Monitor(env, 'SpaceInvaderExperiment')
+if parameter["record"]:
+    env = wrappers.Monitor(env, 'SpaceInvaderExperiment')
 
 
 tf.reset_default_graph()
@@ -25,7 +46,7 @@ tf.reset_default_graph()
 # Initialize weights
 #######################
 
-Weights = {
+W = {
     "conv1": tf.Variable(tf.random_normal([8, 8, 1, 16], 0.00, 0.01), name="w_conv1"),
     #output will be of size (1, 21, 21, 16) for stride 4
     "conv2": tf.Variable(tf.random_normal([4, 4, 16, 32], 0.00, 0.01), name="w_conv2"),
@@ -34,7 +55,7 @@ Weights = {
     "affine2": tf.Variable(tf.random_normal([256, 6], 0.00, 0.01), name="w_affine2")
 }
 
-bias = {
+b = {
     "conv1": tf.Variable(tf.random_normal([1, 21, 21, 16], 0.00, 0.01), name="b_conv1"),
     "conv2": tf.Variable(tf.random_normal([1, 11, 11, 32], 0.00, 0.01), name="b_conv2"),
     "affine1": tf.Variable(tf.random_normal([256], 0.00, 0.01), name="b_affine1"),
@@ -47,39 +68,39 @@ bias = {
 
 ##Feed Forward
 input = tf.placeholder(shape=[84, 84], dtype=tf.float32) #should include 4 pictures instead of one
-if verbose:
+if parameter['verbose']:
     print "1 Direct Input: \t\t" + str(input.get_shape())
 
 inputs = tf.reshape(input, [1, 84, 84, 1] )
-if verbose:
+if parameter['verbose']:
     print "1.1 Reshape Input: \t\t" + str(inputs.get_shape())
 
 
 ##Conv1
 inputs = tf.nn.conv2d(inputs, W['conv1'], strides=[1, 4, 4, 1], padding='SAME') + b['conv1']
 inputs = tf.nn.relu(inputs, name=None) #crelu, or something else? they say 'nonlinearity'
-if verbose:
+if parameter['verbose']:
     print "2. Conv1 \t\t\t" + str(inputs.get_shape())
 
 ##Conv2
 inputs = tf.nn.conv2d(inputs, W['conv2'], strides=[1, 2, 2, 1], padding='SAME') + b['conv2']
 inputs = tf.nn.relu(inputs, name=None) #crelu, or something else? they say 'nonlinearity'
-if verbose:
+if parameter['verbose']:
     print "3. Conv2 \t\t\t" + str(inputs.get_shape())
 
 ##Affine1
 inputs = tf.reshape(inputs, [1, 11 * 11 * 32])
-if verbose:
+if parameter['verbose']:
     print "4.1 Reshape before Affine1 \t" + str(inputs.get_shape())
 
 inputs = tf.matmul(inputs, W['affine1']) + b['affine1']
 inputs = tf.nn.relu(inputs, name=None) #crelu, or something else? they say 'nonlinearity'
-if verbose:
+if parameter['verbose']:
     print "4.2 Affine1 \t\t\t" + str(inputs.get_shape())
 
 ##Affine2 (finally the output)
 Qout = tf.matmul(inputs, W['affine2']) + b['affine2']
-if verbose:
+if parameter['verbose']:
     print "5. Affine2 \t\t\t" + str(inputs.get_shape())
 
 predict = tf.argmax(Qout, 1) #why exactly this operation?
@@ -127,27 +148,28 @@ with tf.Session() as sess:
         steps = 1
 
         while steps < parameter['NUM_STEPS']:
+            steps += 1
 
             ###################
             # Step in Episode
             ###################
             ##Policy forward
-            p_observation = preprocess_image(observation)
+            p_observation = resize(rgb2gray(observation), (110, 84))[13:110 - 13, :] 
             action, all_Qs = sess.run([predict, Qout], feed_dict={input: p_observation}) #takes about 70% of the running time.. which is fine bcs that's the heart of the calculation
-            if np.random.rand(1) < eps:
+            if np.random.rand(1) < parameter['EPS']:
                 action[0] = env.action_space.sample()
 
             new_observation, reward, done, _ = env.step(action[0])
 
             ##Max Value forward
-            p_new_observation = preprocess_image(new_observation)
-            Q_next = sess.run([forward_dict['Qout']], feed_dict={forward_dict['input']: p_new_observation})
+            p_new_observation = resize(rgb2gray(new_observation), (110, 84))[13:110 - 13, :] 
+            Q_next = sess.run([Qout], feed_dict={input: p_new_observation})
             maxQ_next = np.max(Q_next)
             targetQ = all_Qs
-            targetQ[0, action[0]] = reward + gamma * maxQ_next
+            targetQ[0, action[0]] = reward + parameter['GAMMA'] * maxQ_next
 
             ##Update to more optimal features
-            sess.run([loss_dict['updateModel']], feed_dict={forward_dict['input']:p_new_observation, loss_dict['nextQ']: targetQ})
+            sess.run([updateModel], feed_dict={input:p_new_observation, nextQ: targetQ})
             ###################
             # Step in Episode
             ###################
