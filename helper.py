@@ -1,5 +1,5 @@
 """ Includes helper functions that are used to pre-process observations, or
-	to save figures, lists etc. """
+    to save figures, lists etc. """
 
 import numpy as np
 
@@ -23,19 +23,21 @@ def setup_saver(W, b):
 def save_figs(rewardList, stepsList, parameter):
     """ Creates matplotlib figures out of the accumulated lists """
     if not parameter['X11']:
-    	matplotlib.use('Agg') #hopw this is gonna work
+        matplotlib.use('Agg') #hopw this is gonna work
 
     plt.interactive(False)
     plt.plot(rewardList)
     if parameter['SAVE_FIGS']:
         plt.savefig( 'rewards{:d}.png'.format(i) )
     else:
+        plt.ylabel('rewards')
         plt.show()
     
     plt.plot(stepsList)
     if parameter['SAVE_FIGS']:
         plt.savefig( 'steps{:d}.png'.format(i) )
     else:
+        plt.ylabel('steps')
         plt.show()
 
 def preprocess_image(observation):  #takes about 20% of the running time!!!

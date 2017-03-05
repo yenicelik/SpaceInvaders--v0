@@ -1,7 +1,7 @@
-# incorporate this https://gym.openai.com/envs/SpaceInvaders-v0
+# 
 
 # SpaceInvaders--v0
-Playing around with OpenAI gym. Just experimenting, no serious competition intended.
+Playing around with OpenAI gym using the [SpaceInvader Environment](https://gym.openai.com/envs/SpaceInvaders-v0). Just experimenting, no serious competition intended.
 
 ## Usage
 Run

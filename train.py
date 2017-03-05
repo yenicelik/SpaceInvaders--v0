@@ -9,6 +9,8 @@ from helper import preprocess_image
 
 from helper import save_figs
 
+from setup import initialize_replay_memory
+
 import numpy as np
 
 import datetime
@@ -60,7 +62,7 @@ def train(env, parameter, saver, forward_dict, loss_dict):
 
             #print (i, parameter['NUM_EPISODES'])
             if i % parameter['SAVE_EVERY'] == 0:
-                #save_figs(reward_list, steps_list, parameter)
+                save_figs(reward_list, steps_list, parameter)
                 saver.save(sess, 'modelSpaceInvader.ckpt', global_step=i)
                 
             print "Progress: {0:.3f}%%".format(percentage * 100)
@@ -69,7 +71,7 @@ def train(env, parameter, saver, forward_dict, loss_dict):
             print "Percent of successful episodes: " + str(sum(reward_list)/parameter['NUM_EPISODES']) + "%"
             print
 
-        #save_figs(reward_list, steps_list, parameter)
+        save_figs(reward_list, steps_list, parameter)
         saver.save(sess, 'modelSpaceInvader.ckpt', global_step=parameter['NUM_EPISODES'] + 1)
 
     return reward_list, steps_list
@@ -84,14 +86,19 @@ def run_episode(env, sess, cur_episode, parameter, forward_dict, loss_dict):
         Out: steps (needed until termination)
     """
 
-    observation = env.reset()
     total_reward = 0
     done = False
     steps = 1
 
+    #######
+    ##Creating initial 4 experiences
+    replay_memory, observation = initialize_replay_memory(4, env)
+    
+    #######
+    ##Actual loop
     while steps < parameter['NUM_STEPS']:
         steps += 1
-        new_observation, reward, done = step_environment(
+        new_observation, reward, done, p_observation, action, p_new_observation = step_environment(
                             env=env,
                             observation=observation,
                             sess=sess,
@@ -101,6 +108,21 @@ def run_episode(env, sess, cur_episode, parameter, forward_dict, loss_dict):
                             loss_dict=loss_dict
                         )
         total_reward += reward
+
+        aptuple = (p_observation, action, reward, p_new_observation)
+        replay_memory.append(aptuple)
+
+        ########
+        # How often do we replay, and is this 'separate, unbatched way' even the correct way to do so?
+        for i in xrange(4):
+            replay(env=env, 
+                aptuple=random.choice(replay_memory), 
+                sess=sess, 
+                gamma=parameter['GAMMA'],
+                forward_dict=forward_dict, 
+                loss_dict=loss_dict
+            )
+
         if done:
             break
 
@@ -108,7 +130,7 @@ def run_episode(env, sess, cur_episode, parameter, forward_dict, loss_dict):
 
     return total_reward, steps
 
-#takes about 4 seconds to complete!
+
 def step_environment(env, observation, sess, eps, gamma, forward_dict, loss_dict):
     """ Take one step within the environment """
     """ In: env (OpenAI gym wrapper)
@@ -138,6 +160,26 @@ def step_environment(env, observation, sess, eps, gamma, forward_dict, loss_dict
     ##Update to more optimal features
     sess.run([loss_dict['updateModel']], feed_dict={forward_dict['input']:p_new_observation, loss_dict['nextQ']: targetQ})
 
+    return new_observation, reward, done, p_observation, action, p_new_observation
 
-    return new_observation, reward, done
+
+def replay(env, aptuple, sess, gamma, forward_dict, loss_dict):
+    #Unpack values
+    p_observation, action, reward, p_new_observation = aptuple
+
+    #Detect predicted best action
+    action, all_Qs = sess.run([forward_dict['predict'], forward_dict['Qout']], feed_dict={forward_dict['input']: p_observation})
+
+    #Detect predicted best state (from current state)
+    Q_next = sess.run([forward_dict['Qout']], feed_dict={forward_dict['input']: p_new_observation})
+
+    #Apply backpropagation algorithm
+    maxQ_next = np.max(Q_next)
+    targetQ = all_Qs
+    targetQ[0, action[0]] = reward + gamma * maxQ_next
+    sess.run([loss_dict['updateModel']], feed_dict={forward_dict['input']:p_new_observation, loss_dict['nextQ']: targetQ})
+
+
+
+
 
