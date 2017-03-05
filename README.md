@@ -16,7 +16,7 @@ Includes the 'main thread' of the program. Very simple abstraction level.
 
 #### build_graph.py
 Builds the tensorflow graph, as suggested by [this famous paper by Mnih, Silver, Kavukcuooglu, Graves, Antanoglou, Wierstra and Riedmiller (DeepMind)](https://arxiv.org/abs/1312.5602)
-Not all details are implemented yet, (still trying to debug the performance issue)
+Not all details are implemented yet, such as using the last 4 images as input.
 
 #### helper.py
 Includes helper functions for saving the model features, saving figures in matlab plots, and preprocess images (to apply efficient squared convolution)
